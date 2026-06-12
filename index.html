@@ -12,15 +12,15 @@
   import { getDatabase, ref, set, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   // ⚠️ REEMPLAZA ESTOS VALORES con tu Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyDG0Dh6AKgvAHf6pMSjKJLKLpTbqXf_4uY",
-  authDomain: "mali-8b4cd.firebaseapp.com",
-  databaseURL: "https://mali-8b4cd-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mali-8b4cd",
-  storageBucket: "mali-8b4cd.firebasestorage.app",
-  messagingSenderId: "599166881253",
-  appId: "1:599166881253:web:00fee470924f0cd57c330c"
-};
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT.firebaseapp.com",
+    databaseURL: "https://TU_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "TU_PROJECT_ID",
+    storageBucket: "TU_PROJECT.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -676,15 +676,16 @@ function answerChoice(key, value, btn){
   if(window.saveAnswer) window.saveAnswer(key, value);
 
   const respEl = document.getElementById('q-'+key+'-resp');
-  if(!respEl) return;
-  respEl.style.display = 'block';
   
   const msgs = {
     conocerme: { Sí: 'Bueno… espero que haya sido sí. 😊', No: 'Espero que hayas elegido sí... 😭' },
     animal: { Langosta: '¡Langosta! Igualmente respetable... aunque las truchas son más pro 🐟', Trucha: '¡Excelente elección! Una persona de buen gusto. 🐟' },
-    salir: { Sí: '¡Bien! Lo planearemos entonces 🥹❤️', No: 'Ok, mentira, sé que dijiste sí. 🥲' }
+    salir: { Sí: '¡Bien! Lo planearemos entonces 🥹', No: 'Ok, mentira, sé que dijiste sí. 🥲' }
   };
-  if(msgs[key] && msgs[key][value]) respEl.textContent = msgs[key][value];
+  if(respEl && msgs[key] && msgs[key][value]){
+    respEl.style.display = 'block';
+    respEl.textContent = msgs[key][value];
+  }
   
   setTimeout(()=>{ nextSlide(); }, 1800);
 }
