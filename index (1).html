@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Para Mali 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⚠️ REEMPLAZA ESTOS VALORES con tu Firebase config
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT.firebaseapp.com",
+    databaseURL: "https://TU_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "TU_PROJECT_ID",
+    storageBucket: "TU_PROJECT.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window._db = db;
+  window._dbRef = ref;
+  window._dbSet = set;
+  window._dbPush = push;
+  window._dbGet = get;
+
+  // Guardar respuesta helper
+  window.saveAnswer = async (key, value) => {
+    try {
+      const r = ref(db, 'respuestas/' + key);
+      await set(r, { value, timestamp: new Date().toISOString() });
+    } catch(e) { console.warn('Firebase no configurado aún', e); }
+  };
+
+  // Ver respuestas (modo admin)
+  window.loadAnswers = async () => {
+    try {
+      const r = ref(db, 'respuestas');
+      const snap = await get(r);
+      return snap.val();
+    } catch(e) { return null; }
+  };
+</script>
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #0f0a14;
+    --rose: #d46fa0;
+    --lavender: #9b7ec8;
+    --cream: #f5e6f0;
+    --soft: #e8cfe0;
+    --text: #f0e0ec;
+    --muted: #9a7a90;
+    --glow: rgba(180,100,160,0.3);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* CANVAS PARTICLES */
+  #particles { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  /* SLIDES CONTAINER */
+  #slides { position:relative; z-index:1; width:100%; height:100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease;
+    padding: 20px;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .card {
+    background: linear-gradient(135deg, rgba(30,15,40,0.95), rgba(20,10,30,0.95));
+    border: 1px solid rgba(180,100,160,0.3);
+    border-radius: 24px;
+    padding: 44px 48px;
+    max-width: 640px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(150,80,140,0.2), 0 0 120px rgba(100,50,120,0.1);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content:'';
+    position:absolute;
+    top:-50%;left:-50%;
+    width:200%;height:200%;
+    background: radial-gradient(circle at 60% 30%, rgba(180,100,160,0.06) 0%, transparent 60%);
+    pointer-events:none;
+  }
+
+  .slide-num {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  h1, h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--cream);
+    line-height: 1.3;
+  }
+
+  h1 { font-size: clamp(28px, 5vw, 42px); margin-bottom: 20px; }
+  h2 { font-size: clamp(20px, 3vw, 28px); margin-bottom: 16px; }
+
+  p {
+    color: var(--soft);
+    line-height: 1.85;
+    font-size: 15px;
+    margin-bottom: 14px;
+    font-weight: 300;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 50px;
+    border: 1px solid var(--rose);
+    background: transparent;
+    color: var(--cream);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+    margin-top: 8px;
+  }
+  .btn:hover { background: var(--rose); color: #fff; box-shadow: 0 0 20px var(--glow); }
+  .btn.primary { background: var(--rose); color: #fff; }
+  .btn.primary:hover { background: #c45590; }
+
+  /* PROGRESS BAR */
+  #progress-bar {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--rose), var(--lavender));
+    transition: width 0.5s ease;
+    z-index: 100;
+    box-shadow: 0 0 10px var(--glow);
+  }
+
+  /* CHOICES */
+  .choices { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+  .choice-btn {
+    padding: 10px 22px;
+    border: 1px solid rgba(180,100,160,0.4);
+    border-radius: 50px;
+    background: transparent;
+    color: var(--soft);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+  .choice-btn:hover { border-color: var(--rose); color: var(--cream); background: rgba(180,100,160,0.1); }
+  .choice-btn.selected { border-color: var(--rose); background: rgba(180,100,160,0.25); color: var(--cream); }
+
+  /* TEXT INPUT */
+  .text-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(180,100,160,0.3);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    resize: none;
+    margin-top: 12px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  .text-input:focus { border-color: var(--rose); box-shadow: 0 0 15px rgba(180,100,160,0.15); }
+  .text-input::placeholder { color: var(--muted); }
+
+  /* KAHOOT STYLE */
+  .kahoot-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .kahoot-opt {
+    padding: 18px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.25s;
+    color: #fff;
+    border: none;
+  }
+  .kahoot-opt:nth-child(1) { background: #e63946; }
+  .kahoot-opt:nth-child(2) { background: #457b9d; }
+  .kahoot-opt:nth-child(3) { background: #2a9d8f; }
+  .kahoot-opt:nth-child(4) { background: #e9c46a; color:#333; }
+  .kahoot-opt:hover { transform: scale(1.03); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .kahoot-opt.correct { background: #06d6a0 !important; color:#fff; animation: pop 0.4s; }
+  .kahoot-opt.wrong { background: #444 !important; opacity:0.5; }
+  .kahoot-timer { text-align:center; font-size:32px; font-family:'Playfair Display',serif; color:var(--rose); margin-bottom:8px; }
+
+  /* PUZZLE */
+  #puzzle-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; width:240px; margin:20px auto; }
+  .puzzle-piece {
+    width:78px; height:78px;
+    border-radius:8px;
+    cursor:pointer;
+    transition: transform 0.2s;
+    background-size: 234px 234px;
+    border: 2px solid transparent;
+  }
+  .puzzle-piece:hover { border-color: var(--rose); }
+  .puzzle-piece.empty { background: rgba(255,255,255,0.05); cursor:default; border-color: rgba(255,255,255,0.1); }
+
+  /* ENVELOPE ANIMATION */
+  .envelope-wrap { text-align:center; cursor:pointer; margin:20px 0; }
+  .envelope {
+    font-size:80px;
+    display:inline-block;
+    transition: transform 0.3s;
+    filter: drop-shadow(0 0 20px rgba(180,100,160,0.5));
+  }
+  .envelope:hover { transform: scale(1.1) rotate(-5deg); }
+
+  /* IFRAME SLIDE */
+  .cat-frame {
+    width:100%;
+    height:280px;
+    border-radius:16px;
+    border:none;
+    margin-top:12px;
+  }
+
+  /* RATING STARS */
+  .stars { display:flex; gap:8px; margin-top:12px; font-size:32px; cursor:pointer; }
+  .star { transition: transform 0.2s; filter: grayscale(1); }
+  .star:hover, .star.lit { filter: none; transform: scale(1.2); }
+
+  /* FINAL SLIDE */
+  .final-signature {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--rose);
+    margin-top: 20px;
+  }
+
+  /* CONFETTI */
+  .confetti-piece {
+    position:fixed;
+    width:8px; height:8px;
+    border-radius:2px;
+    animation: confettifall 3s ease-in forwards;
+    pointer-events:none;
+    z-index:999;
+  }
+  @keyframes confettifall {
+    0% { transform: translateY(-10px) rotate(0deg); opacity:1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+  }
+
+  @keyframes pop {
+    0% { transform:scale(1); }
+    50% { transform:scale(1.08); }
+    100% { transform:scale(1); }
+  }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .floating { animation: float 3s ease-in-out infinite; }
+
+  /* TYPEWRITER */
+  .typewriter { overflow:hidden; border-right:2px solid var(--rose); white-space:nowrap; animation: blink 0.8s step-end infinite; }
+  @keyframes blink { 50% { border-color:transparent; } }
+
+  /* DRAG WORD GAME */
+  .word-bank { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .word-token {
+    padding:6px 14px;
+    background: rgba(180,100,160,0.15);
+    border: 1px solid rgba(180,100,160,0.4);
+    border-radius:20px;
+    cursor:grab;
+    font-size:13px;
+    color:var(--cream);
+    user-select:none;
+    transition:all 0.2s;
+  }
+  .word-token:hover { background:rgba(180,100,160,0.3); }
+  .word-token.used { opacity:0.3; pointer-events:none; }
+  .fill-blank {
+    display:inline-block;
+    min-width:80px;
+    height:26px;
+    border-bottom:2px solid var(--rose);
+    margin:0 4px;
+    vertical-align:bottom;
+    text-align:center;
+    color:var(--rose);
+    font-weight:500;
+  }
+
+  /* ADMIN PANEL */
+  #admin-panel {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    background:rgba(0,0,0,0.95);
+    padding:40px;
+    overflow-y:auto;
+  }
+  #admin-panel.show { display:block; }
+  .admin-card {
+    background:rgba(30,15,40,0.9);
+    border:1px solid rgba(180,100,160,0.3);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:16px;
+  }
+  .admin-label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+  .admin-value { color:var(--cream); font-size:16px; }
+
+  /* SCROLL HINT */
+  .hint { font-size:12px; color:var(--muted); text-align:center; margin-top:12px; animation:float 2s ease-in-out infinite; }
+
+  @media(max-width:500px){
+    .card { padding:28px 24px; }
+    .kahoot-grid { grid-template-columns:1fr; }
+    #puzzle-grid { width:192px; }
+    .puzzle-piece { width:62px; height:62px; background-size:186px 186px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div id="progress-bar" style="width:0%"></div>
+
+<!-- ============================================================ -->
+<!--  SLIDES                                                       -->
+<!-- ============================================================ -->
+<div id="slides">
+
+  <!-- SLIDE 0: INTRO / SOBRE -->
+  <div class="slide active" id="s0">
+    <div class="card" style="text-align:center;">
+      <div class="slide-num">Para alguien especial</div>
+      <div class="envelope-wrap" onclick="openEnvelope()">
+        <div class="envelope" id="envelope-emoji">📨</div>
+        <p style="margin-top:8px; font-size:13px; color:var(--muted);">Toca para abrir</p>
+      </div>
+      <h2 style="font-style:italic;">Hola, Mali.</h2>
+      <p>Hay algo aquí adentro. ¿Le das?</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 1: CARTA PRINCIPAL 1 -->
+  <div class="slide" id="s1">
+    <div class="card">
+      <div class="slide-num">01 — La carta</div>
+      <h2>No sé por qué hice esto...</h2>
+      <p>Tal vez porque estaba aburrido y quería escribir algo, combinado con algo que me gusta hacer.</p>
+      <p>Esta página solo la mantendré activa el día de hoy y luego la eliminaré.</p>
+      <p>Te conozco desde hace poco, pero bueno… Tal vez no conozca todo de ti, ni tú de mí. Aunque creo que ya te he dicho lo que deberías saber sobre mí, porque la verdad no soy una persona muy interesante. Perdón si a veces no soy tan divertido. 😭</p>
+      <div style="text-align:right; margin-top:8px;">
+        <button class="btn primary" onclick="nextSlide()">Seguir leyendo →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: HISTORIA -->
+  <div class="slide" id="s2">
+    <div class="card">
+      <div class="slide-num">02 — 31 de mayo</div>
+      <h2>El día en que todo cambió</h2>
+      <p>Te conocí el 31 de mayo y, probablemente, ese fue el día en que mi vida volvió a tener un poco de color.</p>
+      <p>Desde ese día, mis días se han vuelto mucho más bonitos y, aunque a veces siga teniendo días malos, conocerte ha sido una ayuda enorme. He sido muy feliz durante todo este tiempo.</p>
+      <p>Desde que te vi cuando estabas con Axel quería hablarte, aunque ese día no fui yo quien dio el primer paso. Aun así, desde entonces muchas cosas cambiaron en cómo me había estado sintiendo durante todos estos años.</p>
+      <p style="color:var(--rose); font-style:italic;">Este es el primer detalle que te voy a dar. Los demás sí me gustaría entregártelos en persona.</p>
+      <div style="text-align:right; margin-top:8px;">
+        <button class="btn primary" onclick="nextSlide()">Continuar →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: MEMORY GAME -->
+  <div class="slide" id="s3">
+    <div class="card" style="text-align:center;">
+      <div class="slide-num">03 — Mini reto</div>
+      <h2>Memory 🃏</h2>
+      <p style="font-size:13px;">Encuentra los 4 pares. Toca dos cartas a la vez.</p>
+      <div id="memory-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px auto;max-width:300px;"></div>
+      <div id="memory-msg" style="color:var(--muted); font-size:13px; min-height:20px;"></div>
+      <button class="btn primary" id="puzzle-next" style="display:none; margin-top:12px;" onclick="nextSlide()">¡Siguiente! →</button>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: PREGUNTA ¿QUIERES SEGUIR? -->
+  <div class="slide" id="s4">
+    <div class="card">
+      <div class="slide-num">04 — Pregunta importante</div>
+      <h2>Igual quiero que sepas...</h2>
+      <p>Solo quiero que sepas que te quiero mucho y que me importas muchísimo.</p>
+      <p>Fuera de eso… tu bebé es hermosa jajajaja, aunque me miraba con odio. 😭😭</p>
+      <p>Y tienes tremenda habitación comparada con la mía, toda pedorra. Un día de estos te invitaré para que conozcas mi mansión de 67 pisos color verde menta. 😎</p>
+      <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
+        <p style="font-weight:500; color:var(--cream);">¿Quieres seguir conociéndome?</p>
+        <div class="choices" id="q-conocer">
+          <button class="choice-btn" onclick="answerChoice('conocerme','Sí',this)">☐ Sí</button>
+          <button class="choice-btn" onclick="answerChoice('conocerme','No',this)">☐ No</button>
+        </div>
+        <div id="q-conocer-resp" style="display:none; margin-top:12px; color:var(--muted); font-size:13px; font-style:italic;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: GATOS (broma) -->
+  <div class="slide" id="s5">
+    <div class="card">
+      <div class="slide-num">05 — Contenido importante 🐱</div>
+      <h2>Antes de continuar...</h2>
+      <p style="font-size:13px; color:var(--muted);">Es necesario que veas esto. Es un requisito oficial de esta carta.</p>
+      <iframe 
+        class="cat-frame"
+        src="https://giphy.com/embed/ICOgUNjpvO0PC" 
+        allowFullScreen
+        title="Gato muy importante"
+        loading="lazy"
+      ></iframe>
+      <p style="font-size:12px; color:var(--muted); margin-top:8px; text-align:center;">* Esto no lo decidí yo, el gato lo exigió</p>
+      <div style="text-align:center; margin-top:12px;">
+        <button class="btn" onclick="window.open('https://thecatapi.com','_blank')" style="margin-right:8px;">Ver más gatos 🐾</button>
+        <button class="btn primary" onclick="nextSlide()">Ok ya vi al gato →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: KAHOOT -->
+  <div class="slide" id="s6">
+    <div class="card">
+      <div class="slide-num">06 — Kahoot™ de Franco</div>
+      <div class="kahoot-timer" id="k-timer">⏱ <span id="k-secs">15</span></div>
+      <h2 id="k-question" style="font-size:20px;">¿Si fueras un animal, cuál serías?</h2>
+      <div class="kahoot-grid" id="k-options">
+        <button class="kahoot-opt" onclick="kahootAnswer(this,false)">🐬 Delfín</button>
+        <button class="kahoot-opt" onclick="kahootAnswer(this,false)">🦁 León</button>
+        <button class="kahoot-opt" onclick="kahootAnswer(this,true)">🐟 Trucha</button>
+        <button class="kahoot-opt" onclick="kahootAnswer(this,false)">🦋 Mariposa</button>
+      </div>
+      <div id="k-result" style="display:none; text-align:center; margin-top:12px; font-size:13px;"></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: TRUCHA / LANGOSTA -->
+  <div class="slide" id="s7">
+    <div class="card">
+      <div class="slide-num">07 — La pregunta del millón</div>
+      <h2>¿Qué prefieres ser? 🤔</h2>
+      <p>Esta es una pregunta muy seria. Tómate tu tiempo.</p>
+      <div class="choices" id="q-animal">
+        <button class="choice-btn" onclick="answerChoice('animal','Langosta',this)">🦞 Langosta</button>
+        <button class="choice-btn" onclick="answerChoice('animal','Trucha',this)">🐟 Trucha</button>
+      </div>
+      <div id="q-animal-resp" style="display:none; margin-top:12px; color:var(--muted); font-size:13px; font-style:italic;"></div>
+      <p style="margin-top:16px; font-size:13px; color:var(--muted);">Jajajaja, yo hubiera elegido ser una trucha. Son más pro. 🐟</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: BEBIDA + COMPLETAR FRASE (jueguito) -->
+  <div class="slide" id="s8">
+    <div class="card">
+      <div class="slide-num">08 — Cuéntame más</div>
+      <h2>Preguntas rápidas 🌙</h2>
+      <p style="font-weight:500; color:var(--cream); margin-bottom:6px;">¿Cuál es tu bebida favorita?</p>
+      <input class="text-input" type="text" id="bebida-input" placeholder="escribe aquí..." style="height:44px;" />
+
+      <p style="font-weight:500; color:var(--cream); margin-top:20px; margin-bottom:6px;">¿Cuál es tu película favorita?</p>
+      <input class="text-input" type="text" id="pelicula-input" placeholder="la que más te guste..." style="height:44px;" />
+
+      <p style="font-weight:500; color:var(--cream); margin-top:20px; margin-bottom:6px;">Si pudieras ir a cualquier lugar del mundo, ¿a dónde irías?</p>
+      <input class="text-input" type="text" id="lugar-input" placeholder="cualquier lugar..." style="height:44px;" />
+
+      <div style="text-align:right; margin-top:16px;">
+        <button class="btn primary" onclick="saveQuick()">Guardar y continuar →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: NOTA LIBRE -->
+  <div class="slide" id="s9">
+    <div class="card">
+      <div class="slide-num">09 — Espacio tuyo</div>
+      <h2>Déjame una nota 📝</h2>
+      <p>No importa si es algo largo o corto, igual lo voy a leer con mucho gusto. Y si prefieres dejarlo en blanco, también está bien.</p>
+      <textarea class="text-input" id="nota-input" rows="5" placeholder="escribe lo que quieras..."></textarea>
+      <div style="text-align:right; margin-top:12px;">
+        <button class="btn primary" onclick="saveNota()">Guardar →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: PREGUNTA SALIR -->
+  <div class="slide" id="s10">
+    <div class="card">
+      <div class="slide-num">10 — La propuesta</div>
+      <h2>También quiero conocerte mucho más 🌧️</h2>
+      <p>Me gustaría que un día simplemente fuéramos a caminar mientras llueve y hablar durante todo el camino. Me gustaría pasar un día entero contigo y seguir conociéndote.</p>
+      <p>Aunque la distancia y el hecho de que no tengamos un lugar donde nos veamos seguido lo hacen un poco más difícil, me gustaría seguir conociéndote.</p>
+      <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px;">
+        <p style="font-weight:500; color:var(--cream);">¿Quieres salir a comer conmigo a finales de este mes o antes?</p>
+        <div class="choices" id="q-salir">
+          <button class="choice-btn" onclick="answerChoice('salir','Sí',this)">☐ Sí 🥹</button>
+          <button class="choice-btn" onclick="answerChoice('salir','No',this)">☐ No 😭</button>
+        </div>
+        <div id="q-salir-resp" style="display:none; margin-top:12px; color:var(--muted); font-size:13px; font-style:italic;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: MINI JUEGO ESTRELLITAS -->
+  <div class="slide" id="s11">
+    <div class="card" style="text-align:center;">
+      <div class="slide-num">11 — Jueguito extra</div>
+      <h2>Califica esta carta ⭐</h2>
+      <p style="font-size:13px;">Del 1 al 5, ¿qué tan bien lo hice? (sé honesta 😭)</p>
+      <div class="stars" style="justify-content:center;" id="stars-wrap">
+        <span class="star" onclick="rateStar(1)">⭐</span>
+        <span class="star" onclick="rateStar(2)">⭐</span>
+        <span class="star" onclick="rateStar(3)">⭐</span>
+        <span class="star" onclick="rateStar(4)">⭐</span>
+        <span class="star" onclick="rateStar(5)">⭐</span>
+      </div>
+      <div id="star-resp" style="min-height:20px; margin-top:12px; color:var(--muted); font-size:13px;"></div>
+      <div style="margin-top:20px;">
+        <button class="btn primary" id="star-next" style="display:none;" onclick="nextSlide()">Ir al final →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: FINAL -->
+  <div class="slide" id="s12">
+    <div class="card" style="text-align:center;">
+      <div class="slide-num">Fin</div>
+      <h2 style="font-size:32px; margin-bottom:8px;">✨</h2>
+      <h2>Eso es todo</h2>
+      <p>Perdón si no es muy larga, pero hice lo mejor que pude.</p>
+      <p>Solo quiero que sepas que todo esto lo hice con mucho esfuerzo, cariño y pensando en ti.</p>
+      <p style="color:var(--rose); font-size:15px;">Solo quiero que sepas que te quiero mucho y que me importas muchísimo.</p>
+      <div class="final-signature">Att: Franco 🦐</div>
+      <div style="margin-top:24px;">
+        <button class="btn" onclick="launchConfetti(); this.textContent='🎉 ¡Listo!'">Celebrar 🎊</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <h2 style="font-family:'Playfair Display',serif; font-size:28px;">📋 Respuestas de Mali</h2>
+    <button class="btn" onclick="document.getElementById('admin-panel').classList.remove('show')">Cerrar ✕</button>
+  </div>
+  <div id="admin-content">
+    <p style="color:var(--muted);">Cargando...</p>
+  </div>
+</div>
+
+<!-- KONAMI / ADMIN KEY: escribe "franco" -->
+<script>
+// ============================================================
+// CORE STATE
+// ============================================================
+let currentSlide = 0;
+const TOTAL_SLIDES = 13;
+let kahootTimer = null;
+let selectedPuzzle = null;
+let puzzleSolved = false;
+
+function showSlide(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  currentSlide = n;
+  const pct = (n / (TOTAL_SLIDES-1)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  if(n === 3) initPuzzle();
+  if(n === 6) startKahoot();
+  if(n === 12) { launchConfetti(); }
+}
+
+function nextSlide() { showSlide(currentSlide + 1); }
+
+// ============================================================
+// PARTICLES
+// ============================================================
+(function(){
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let W, H, dots = [];
+  function resize(){ W=canvas.width=innerWidth; H=canvas.height=innerHeight; }
+  resize(); addEventListener('resize', resize);
+  for(let i=0;i<60;i++) dots.push({
+    x:Math.random()*1920, y:Math.random()*1080,
+    r:Math.random()*2+0.5,
+    dx:(Math.random()-.5)*0.3, dy:(Math.random()-.5)*0.3,
+    a:Math.random()
+  });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    dots.forEach(d=>{
+      ctx.beginPath();
+      ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(180,100,160,${d.a*0.5})`;
+      ctx.fill();
+      d.x+=d.dx; d.y+=d.dy;
+      if(d.x<0)d.x=W; if(d.x>W)d.x=0;
+      if(d.y<0)d.y=H; if(d.y>H)d.y=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ============================================================
+// SLIDE 0: ENVELOPE
+// ============================================================
+function openEnvelope(){
+  const e = document.getElementById('envelope-emoji');
+  e.textContent = '💌';
+  e.style.transform = 'scale(1.3) rotate(10deg)';
+  setTimeout(()=>{ e.style.transform=''; e.textContent='✉️'; }, 200);
+  setTimeout(()=>{ nextSlide(); }, 600);
+}
+
+// ============================================================
+// CHOICES + FIREBASE
+// ============================================================
+function answerChoice(key, value, btn){
+  const group = btn.parentElement;
+  group.querySelectorAll('.choice-btn').forEach(b=>{
+    b.classList.remove('selected');
+    b.classList.add('choice-btn');
+  });
+  btn.classList.add('selected');
+  if(window.saveAnswer) window.saveAnswer(key, value);
+
+  const respEl = document.getElementById('q-'+key+'-resp');
+  if(!respEl) return;
+  respEl.style.display = 'block';
+  
+  const msgs = {
+    conocerme: { Sí: 'Bueno… espero que haya sido sí. 😊', No: 'Espero que hayas elegido sí... 😭' },
+    animal: { Langosta: '¡Langosta! Igualmente respetable... aunque las truchas son más pro 🐟', Trucha: '¡Excelente elección! Una persona de buen gusto. 🐟' },
+    salir: { Sí: '¡Bien! Lo planearemos entonces 🥹❤️', No: 'Ok, mentira, sé que dijiste sí. 🥲' }
+  };
+  if(msgs[key] && msgs[key][value]) respEl.textContent = msgs[key][value];
+  
+  setTimeout(()=>{ nextSlide(); }, 1800);
+}
+
+// ============================================================
+// PUZZLE
+// ============================================================
+// ============================================================
+// SLIDE 3: MEMORY GAME
+// ============================================================
+let memoryFlipped = [], memoryMatched = 0, memoryLocked = false;
+
+function initPuzzle(){
+  memoryFlipped=[]; memoryMatched=0; memoryLocked=false;
+  const emojis=['🐟','🌙','🌸','✨'];
+  const cards=[...emojis,...emojis].sort(()=>Math.random()-0.5);
+  const grid=document.getElementById('memory-grid');
+  grid.innerHTML='';
+  document.getElementById('memory-msg').textContent='';
+  document.getElementById('puzzle-next').style.display='none';
+
+  cards.forEach((e,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText=`
+      width:64px;height:64px;border-radius:12px;cursor:pointer;
+      background:rgba(180,100,160,0.15);border:1px solid rgba(180,100,160,0.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:28px;transition:all 0.3s;user-select:none;
+    `;
+    card.dataset.emoji=e;
+    card.dataset.idx=i;
+    card.textContent='?';
+    card.style.color='transparent';
+    card.onclick=()=>flipCard(card);
+    grid.appendChild(card);
+  });
+}
+
+function flipCard(card){
+  if(memoryLocked) return;
+  if(card.dataset.revealed==='true') return;
+  if(memoryFlipped.length>=2) return;
+
+  card.textContent=card.dataset.emoji;
+  card.style.color='#fff';
+  card.style.background='rgba(180,100,160,0.35)';
+  card.dataset.revealed='true';
+  memoryFlipped.push(card);
+
+  if(memoryFlipped.length===2){
+    memoryLocked=true;
+    const [a,b]=memoryFlipped;
+    if(a.dataset.emoji===b.dataset.emoji){
+      a.style.borderColor='var(--rose)'; b.style.borderColor='var(--rose)';
+      memoryMatched++;
+      memoryFlipped=[];
+      memoryLocked=false;
+      if(memoryMatched===4){
+        document.getElementById('memory-msg').textContent='¡Encontraste todos los pares! 🎉';
+        document.getElementById('memory-msg').style.color='var(--rose)';
+        document.getElementById('puzzle-next').style.display='inline-block';
+      }
+    } else {
+      setTimeout(()=>{
+        a.textContent='?'; a.style.color='transparent'; a.style.background='rgba(180,100,160,0.15)'; a.dataset.revealed='';
+        b.textContent='?'; b.style.color='transparent'; b.style.background='rgba(180,100,160,0.15)'; b.dataset.revealed='';
+        memoryFlipped=[]; memoryLocked=false;
+      },900);
+    }
+  }
+}
+
+// ============================================================
+// KAHOOT
+// ============================================================
+const kahootQs = [
+  { q:'¿Si fueras un animal, cuál serías?', opts:['🐬 Delfín','🦁 León','🐟 Trucha','🦋 Mariposa'], ans:2 },
+  { q:'¿Cuál es el mejor plan para un sábado?', opts:['🎬 Netflix todo el día','🌧️ Caminar bajo la lluvia','🍕 Comer pizza y hablar','🎮 Videojuegos'], ans:2 },
+  { q:'¿Qué harías en mi mansión de 67 pisos verde menta?', opts:['😴 Dormir','🗣️ Hablar horas','🤔 Cuestionarme todo','🏃 Salir corriendo'], ans:1 },
+];
+let kIdx=0, kSeconds=15, kDone=false;
+
+function startKahoot(){
+  kIdx=0; kDone=false; kSeconds=15;
+  loadKahootQ(kIdx);
+}
+
+function loadKahootQ(i){
+  if(i>=kahootQs.length){ 
+    setTimeout(()=>nextSlide(),1000); 
+    return; 
+  }
+  kDone=false; kSeconds=15;
+  const q=kahootQs[i];
+  document.getElementById('k-question').textContent=q.q;
+  const opts=document.getElementById('k-options');
+  opts.innerHTML='';
+  q.opts.forEach((o,j)=>{
+    const b=document.createElement('button');
+    b.className='kahoot-opt';
+    b.textContent=o;
+    b.onclick=()=>kahootAnswer(b, j===q.ans, i);
+    opts.appendChild(b);
+  });
+  document.getElementById('k-result').style.display='none';
+  if(kahootTimer) clearInterval(kahootTimer);
+  kahootTimer=setInterval(()=>{
+    kSeconds--;
+    document.getElementById('k-secs').textContent=kSeconds;
+    if(kSeconds<=0 && !kDone){ clearInterval(kahootTimer); kDone=true; revealKahoot(i,-1); }
+  },1000);
+}
+
+function kahootAnswer(btn, correct, qIdx){
+  if(kDone) return; kDone=true;
+  clearInterval(kahootTimer);
+  revealKahoot(qIdx, correct?1:0, btn);
+}
+
+function revealKahoot(qIdx, result, selectedBtn){
+  const opts=document.getElementById('k-options').children;
+  const q=kahootQs[qIdx];
+  Array.from(opts).forEach((b,j)=>{
+    if(j===q.ans) b.classList.add('correct');
+    else b.classList.add('wrong');
+  });
+  const res=document.getElementById('k-result');
+  res.style.display='block';
+  res.textContent=result===1?'¡Correcto! 🎉':result===0?'Casi... la próxima 😄':'⏰ ¡Se acabó el tiempo!';
+  window.saveAnswer('kahoot_q'+qIdx, selectedBtn?selectedBtn.textContent:'timeout');
+  setTimeout(()=>{ kIdx++; loadKahootQ(kIdx); },2000);
+}
+
+// ============================================================
+// QUICK ANSWERS
+// ============================================================
+function saveQuick(){
+  const b=document.getElementById('bebida-input').value;
+  const p=document.getElementById('pelicula-input').value;
+  const l=document.getElementById('lugar-input').value;
+  if(window.saveAnswer){
+    window.saveAnswer('bebida', b||'(vacío)');
+    window.saveAnswer('pelicula', p||'(vacío)');
+    window.saveAnswer('lugar', l||'(vacío)');
+  }
+  nextSlide();
+}
+
+function saveNota(){
+  const n=document.getElementById('nota-input').value;
+  if(window.saveAnswer) window.saveAnswer('nota', n||'(sin nota)');
+  nextSlide();
+}
+
+// ============================================================
+// STARS
+// ============================================================
+function rateStar(n){
+  const stars=document.querySelectorAll('#stars-wrap .star');
+  stars.forEach((s,i)=>s.classList.toggle('lit', i<n));
+  if(window.saveAnswer) window.saveAnswer('rating', n+'/5');
+  const msgs=['Para la próxima lo haré mejor 😭','Algo es algo... 😅','¡Aprobado! 🙏','¡Muy bien! 🥹','¡Perfecto! ❤️ (gracias 😭)'];
+  document.getElementById('star-resp').textContent=msgs[n-1];
+  document.getElementById('star-next').style.display='inline-block';
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function launchConfetti(){
+  const colors=['#d46fa0','#9b7ec8','#f5e6f0','#ffd6e7','#c3b1e1'];
+  for(let i=0;i<80;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),4000);
+    },i*30);
+  }
+}
+
+// ============================================================
+// ADMIN: escribe "admin" en cualquier parte para ver respuestas
+// ============================================================
+let keyBuffer='';
+document.addEventListener('keydown',(e)=>{
+  keyBuffer+=e.key.toLowerCase();
+  if(keyBuffer.length>7) keyBuffer=keyBuffer.slice(-7);
+  if(keyBuffer.includes('franco')) openAdmin();
+});
+
+async function openAdmin(){
+  const panel=document.getElementById('admin-panel');
+  panel.classList.add('show');
+  const content=document.getElementById('admin-content');
+  content.innerHTML='<p style="color:var(--muted);">Cargando respuestas...</p>';
+  if(!window.loadAnswers){ content.innerHTML='<p style="color:var(--muted);">Firebase no configurado aún.</p>'; return; }
+  const data=await window.loadAnswers();
+  if(!data){ content.innerHTML='<p style="color:var(--muted);">No hay respuestas todavía.</p>'; return; }
+  const labels={
+    conocerme:'¿Quieres seguir conociéndome?',
+    animal:'¿Trucha o langosta?',
+    salir:'¿Quieres salir a comer?',
+    bebida:'Bebida favorita',
+    pelicula:'Película favorita',
+    lugar:'Lugar favorito del mundo',
+    nota:'Nota libre',
+    rating:'Calificación de la carta',
+    kahoot_q0:'Kahoot: animal',
+    kahoot_q1:'Kahoot: plan sábado',
+    kahoot_q2:'Kahoot: mansión',
+  };
+  let html='';
+  for(const [k,v] of Object.entries(data)){
+    const lbl=labels[k]||k;
+    html+=`<div class="admin-card">
+      <div class="admin-label">${lbl}</div>
+      <div class="admin-value">${v.value}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${v.timestamp||''}</div>
+    </div>`;
+  }
+  content.innerHTML=html||'<p style="color:var(--muted);">Sin respuestas aún.</p>';
+}
+</script>
+</body>
+</html>
